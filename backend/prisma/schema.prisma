@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+enum Estado{
+    PENDIENTE
+    EN_PROCESO
+    CANCELADO
+    FACTURADO
+}
+enum estadoM{
+    LIBRE
+    OCUPADA
+    RESERVADA
+}
+enum estadoT{
+    ABIERTO
+    CERRADO
+}
+
+
+model Administrador{
+    id        Int @id @default(autoincrement())
+    usuario    String @unique
+    password String
+}
+
+model Mesero{
+    id      Int @id @default(autoincrement())
+    nombre  String
+    activo  Boolean @default(true)
+    mesas   Mesa[]
+    pedidos Pedido[]
+}
+
+model Producto {
+    id          Int @id @default(autoincrement())
+    nombre      String
+    precio      Decimal @db.Decimal(10, 2)
+    activo  Boolean @default(true)
+    contenidos Contenido[]
+}
+
+model Contenido{
+    id          Int @id @default(autoincrement())
+    cantidad    Int
+    observaciones String?
+    precio      Decimal @db.Decimal(10, 2)
+    
+    producto    Producto @relation(fields:[producto_id],references: [id])
+    producto_id  Int
+    
+    pedido       Pedido @relation(fields:[pedido_id],references: [id])
+    pedido_id    Int   
+}
+
+model Mesa {
+    id          Int @id @default(autoincrement())
+    estadoM     estadoM  @default(LIBRE) 
+
+    mesero      Mesero? @relation(fields:[mesero_id], references: [id])
+    mesero_id   Int?
+    pedidos     Pedido[]
+}
+
+model Turno {
+    id          Int @id @default(autoincrement())
+    inicio      DateTime @default(now())
+    fin         DateTime?
+    estado      estadoT @default(ABIERTO)
+    total       Decimal @db.Decimal(10, 2)
+    pedidos     Pedido[]
+}
+
+model Pedido {
+    id          Int @id @default(autoincrement())
+    estado      Estado @default(PENDIENTE) 
+    total       Decimal @db.Decimal(10, 2)
+
+    mesero       Mesero @relation(fields:[mesero_id], references: [id])
+    mesero_id   Int 
+
+    turno       Turno @relation(fields:[turno_id], references: [id])
+    turno_id    Int 
+
+    mesa        Mesa @relation(fields:[mesa_id], references: [id])
+    mesa_id     Int 
+
+    contenidos Contenido[]
+}
+
