@@ -13,16 +13,17 @@ export async function crearMesa(req, res) {
 
 export async function obtenerMesas(req, res) {
   try {
+    const { activo } = req.query;
+
+    const filtro = activo === "todos" ? {} : { activo: true };
+
     const mesas = await prisma.mesa.findMany({
+      where: filtro,
       include: {
-        mesero: {
-          select: { nombre: true },
-        },
+        mesero: { select: { nombre: true } },
       },
     });
-    if (mesas.length === 0) {
-      return res.status(404).json({ msg: "No se encontraron mesas" });
-    }
+
     return res.status(200).json({ msg: "Mesas obtenidas exitosamente", mesas });
   } catch (error) {
     return res.status(500).json({ msg: error.message, error });
@@ -53,6 +54,69 @@ export async function obtenerMesaPorId(req, res) {
       return res.status(404).json({ msg: "Mesa no encontrada" });
     }
     return res.status(200).json({ msg: "Mesa obtenida exitosamente", mesa });
+  } catch (error) {
+    return res.status(500).json({ msg: error.message, error });
+  }
+}
+
+export async function desactivarMesa(req, res) {
+  try {
+    const mesa_id = Number(req.params.id);
+    if (
+      typeof mesa_id !== "number" ||
+      !Number.isInteger(mesa_id) ||
+      mesa_id <= 0
+    ) {
+      return res.status(400).json({ msg: "Codigo de mesa invalido!" });
+    }
+    const mesaActual = await prisma.mesa.findUnique({
+      where: { id: mesa_id },
+    });
+    if (!mesaActual) {
+      return res.status(404).json({ msg: "Mesa no encontrada" });
+    }
+    if (mesaActual.estadoM === "OCUPADA") {
+      return res
+        .status(400)
+        .json({ msg: "No se puede desactivar la mesa, está ocupada!" });
+    }
+    const mesaDesactivada = await prisma.mesa.update({
+      where: {
+        id: mesa_id,
+      },
+      data: {
+        activo: false,
+      },
+    });
+    return res
+      .status(200)
+      .json({ msg: "Mesa desactivada correctamente!", mesaDesactivada });
+  } catch (error) {
+    return res.status(500).json({ msg: error.message, error });
+  }
+}
+
+export async function reactivarMesa(req, res) {
+  try {
+    const mesa_id = Number(req.params.id);
+    if (
+      typeof mesa_id !== "number" ||
+      !Number.isInteger(mesa_id) ||
+      mesa_id <= 0
+    ) {
+      return res.status(400).json({ msg: "Codigo de mesa invalido!" });
+    }
+    const mesaReactivada = await prisma.mesa.update({
+      where: {
+        id: mesa_id,
+      },
+      data: {
+        activo: true,
+      },
+    });
+    return res
+      .status(200)
+      .json({ msg: "Mesa reactivada correctamente!", mesaReactivada });
   } catch (error) {
     return res.status(500).json({ msg: error.message, error });
   }

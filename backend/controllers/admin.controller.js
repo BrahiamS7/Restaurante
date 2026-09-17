@@ -1,5 +1,6 @@
 import prisma from "../utils/prisma.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 // export function validarPass(password) {
 //   if (password.length >= 8 && /\d/.test(password)) {
@@ -32,7 +33,12 @@ export async function login(req, res) {
         .status(401)
         .json({ error: "Contraseña y/o usuario incorrectos" });
     }
-    res.status(200).json({ msg: "Usuario aprobado!" });
+    const token = jwt.sign(
+      { id: user.id, usuario: user.usuario },
+      process.env.JWT_SECRET,
+      { expiresIn: "8h" },
+    );
+    res.status(200).json({ msg: "Usuario aprobado!", token });
   } catch (error) {
     res.status(500).json({ msg: error.message, error });
   }
@@ -61,14 +67,14 @@ export async function crearMesero(req, res) {
 
 export async function obtenerMeseros(req, res) {
   try {
+    const { activo } = req.query;
+
+    const filtro = activo === "false" ? { activo: false } : { activo: true };
+
     const meseros = await prisma.mesero.findMany({
-      where: {
-        activo: true,
-      },
+      where: filtro,
     });
-    if (meseros.length === 0) {
-      return res.status(400).json({ msg: "No hay meseros que mostrar" });
-    }
+
     return res.status(200).json(meseros);
   } catch (error) {
     return res.status(500).json({ msg: error.message, error });
@@ -142,6 +148,19 @@ export async function desactivarMesero(req, res) {
     ) {
       return res.status(400).json({ msg: "Codigo de mesero invalido!" });
     }
+    const pedidosActivos = await prisma.pedido.findMany({
+      where: {
+        mesero_id: mesero_id,
+        estado: {
+          in: ["PENDIENTE", "EN_PROCESO"],
+        },
+      },
+    });
+    if (pedidosActivos.length > 0) {
+      return res.status(400).json({
+        msg: "No se puede desactivar el mesero, tiene pedidos asociados!",
+      });
+    }
     const meseroDesactivado = await prisma.mesero.update({
       where: {
         id: mesero_id,
@@ -152,7 +171,33 @@ export async function desactivarMesero(req, res) {
     });
     return res
       .status(200)
-      .json({ msg: "Mesero desactivado correctamente!",meseroDesactivado});
+      .json({ msg: "Mesero desactivado correctamente!", meseroDesactivado });
+  } catch (error) {
+    return res.status(500).json({ msg: error.message, error });
+  }
+}
+
+export async function reactivarMesero(req, res) {
+  try {
+    const mesero_id = Number(req.params.id);
+    if (
+      typeof mesero_id !== "number" ||
+      !Number.isInteger(mesero_id) ||
+      mesero_id <= 0
+    ) {
+      return res.status(400).json({ msg: "Codigo de mesero invalido!" });
+    }
+    const meseroReactivado = await prisma.mesero.update({
+      where: {
+        id: mesero_id,
+      },
+      data: {
+        activo: true,
+      },
+    });
+    return res
+      .status(200)
+      .json({ msg: "Mesero reactivado correctamente!", meseroReactivado });
   } catch (error) {
     return res.status(500).json({ msg: error.message, error });
   }

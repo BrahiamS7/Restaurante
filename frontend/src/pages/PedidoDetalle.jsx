@@ -7,9 +7,10 @@ import {
   obtenerContenidosPorPedido,
   crearContenido,
   eliminarContenido,
-  actualizarEstadoPedido,
+  actualizarContenido,
   facturarPedido,
   cancelarPedido,
+  generarTicket,
 } from "../services/api";
 
 export default function PedidoDetalle() {
@@ -28,21 +29,45 @@ export default function PedidoDetalle() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
 
+  const [ticketVisible, setTicketVisible] = useState(false);
+  const [textoTicket, setTextoTicket] = useState("");
+
+  // --- NUEVO: estado para el modal de edición ---
+  const [contenidoEditando, setContenidoEditando] = useState(null);
+  const [cantidadEditada, setCantidadEditada] = useState(1);
+  const [observacionesEditadas, setObservacionesEditadas] = useState("");
+
   useEffect(() => {
     cargarDatos();
   }, [id]);
+
+  async function enviarACocina() {
+    try {
+      setGuardando(true);
+      setError("");
+
+      const resultado = await generarTicket(id);
+      setTextoTicket(resultado.ticket);
+      setTicketVisible(true);
+
+      await cargarDatos();
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setGuardando(false);
+    }
+  }
 
   async function cargarDatos() {
     try {
       setLoading(true);
       setError("");
 
-      const [pedidoData, productosData, contenidosData] =
-        await Promise.all([
-          obtenerPedidoPorId(id),
-          obtenerProductos(),
-          obtenerContenidosPorPedido(id),
-        ]);
+      const [pedidoData, productosData, contenidosData] = await Promise.all([
+        obtenerPedidoPorId(id),
+        obtenerProductos(),
+        obtenerContenidosPorPedido(id),
+      ]);
 
       setPedido(pedidoData.pedido);
       setProductos(productosData.productos);
@@ -74,11 +99,7 @@ export default function PedidoDetalle() {
       setGuardando(true);
       setError("");
 
-      await crearContenido(
-        cantidad,
-        productoSeleccionado,
-        id
-      );
+      await crearContenido(cantidad, productoSeleccionado, id, observaciones);
 
       setProductoSeleccionado("");
       setCantidad(1);
@@ -94,7 +115,7 @@ export default function PedidoDetalle() {
 
   async function handleEliminarContenido(contenidoId) {
     const confirmar = window.confirm(
-      "¿Seguro que deseas eliminar este producto del pedido?"
+      "¿Seguro que deseas eliminar este producto del pedido?",
     );
 
     if (!confirmar) return;
@@ -109,12 +130,33 @@ export default function PedidoDetalle() {
     }
   }
 
-  async function enviarACocina() {
+  // --- NUEVO: abrir el modal precargando los valores actuales ---
+  function abrirEdicion(contenido) {
+    setContenidoEditando(contenido);
+    setCantidadEditada(contenido.cantidad);
+    setObservacionesEditadas(contenido.observaciones || "");
+    setError("");
+  }
+
+  function cerrarEdicion() {
+    setContenidoEditando(null);
+  }
+
+  // --- NUEVO: guardar los cambios del modal ---
+  async function guardarEdicion(event) {
+    event.preventDefault();
+
     try {
       setGuardando(true);
       setError("");
 
-      await actualizarEstadoPedido(id, "EN_PROCESO");
+      await actualizarContenido(
+        contenidoEditando.id,
+        cantidadEditada,
+        observacionesEditadas,
+      );
+
+      cerrarEdicion();
       await cargarDatos();
     } catch (error) {
       setError(error.message);
@@ -130,7 +172,7 @@ export default function PedidoDetalle() {
     }
 
     const confirmar = window.confirm(
-      "¿Seguro que deseas facturar este pedido?"
+      "¿Seguro que deseas facturar este pedido?",
     );
 
     if (!confirmar) return;
@@ -151,7 +193,7 @@ export default function PedidoDetalle() {
 
   async function handleCancelar() {
     const confirmar = window.confirm(
-      "¿Seguro que deseas cancelar este pedido?"
+      "¿Seguro que deseas cancelar este pedido?",
     );
 
     if (!confirmar) return;
@@ -171,9 +213,11 @@ export default function PedidoDetalle() {
   }
 
   const total = contenidos.reduce(
-    (acumulado, contenido) =>
-      acumulado + Number(contenido.precio),
-    0
+    (acumulado, contenido) => acumulado + Number(contenido.precio),
+    0,
+  );
+  const hayNovedadesSinEnviar = contenidos.some(
+    (contenido) => contenido.enviadoACocina === false,
   );
 
   if (loading) {
@@ -181,11 +225,7 @@ export default function PedidoDetalle() {
   }
 
   if (!pedido) {
-    return (
-      <div className="loading">
-        No se encontró el pedido.
-      </div>
-    );
+    return <div className="loading">No se encontró el pedido.</div>;
   }
 
   return (
@@ -196,27 +236,17 @@ export default function PedidoDetalle() {
       />
 
       <main className="page-content">
-        <button
-          className="back-button"
-          onClick={() => navigate("/pedidos")}
-        >
+        <button className="back-button" onClick={() => navigate("/pedidos")}>
           ← Volver a pedidos
         </button>
 
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
+        {error && <div className="error-message">{error}</div>}
 
         <div className="pedido-builder">
           <section className="pedido-products-section">
             <div className="builder-header">
               <div>
-                <span className="detail-label">
-                  MENÚ
-                </span>
-
+                <span className="detail-label">Menú</span>
                 <h2>Agregar productos</h2>
               </div>
             </div>
@@ -226,61 +256,39 @@ export default function PedidoDetalle() {
                 <button
                   key={producto.id}
                   className={`producto-pedido-card ${
-                    productoSeleccionado ===
-                    String(producto.id)
+                    productoSeleccionado === String(producto.id)
                       ? "selected"
                       : ""
                   }`}
-                  onClick={() =>
-                    setProductoSeleccionado(
-                      String(producto.id)
-                    )
-                  }
+                  onClick={() => setProductoSeleccionado(String(producto.id))}
                 >
-                  <div className="producto-pedido-icon">
-                    ◆
-                  </div>
-
+                  <div className="producto-pedido-icon">◆</div>
                   <div>
                     <h3>{producto.nombre}</h3>
-
-                    <strong>
-                      {formatearPrecio(producto.precio)}
-                    </strong>
+                    <strong>{formatearPrecio(producto.precio)}</strong>
                   </div>
                 </button>
               ))}
             </div>
 
-            <form
-              className="producto-form"
-              onSubmit={agregarProducto}
-            >
+            <form className="producto-form" onSubmit={agregarProducto}>
               <div className="producto-form-row">
                 <div className="form-field cantidad-field">
                   <label>Cantidad</label>
-
                   <input
                     type="number"
                     min="1"
                     value={cantidad}
-                    onChange={(event) =>
-                      setCantidad(event.target.value)
-                    }
+                    onChange={(event) => setCantidad(event.target.value)}
                   />
                 </div>
 
                 <div className="form-field observaciones-field">
                   <label>Observaciones</label>
-
                   <input
                     type="text"
                     value={observaciones}
-                    onChange={(event) =>
-                      setObservaciones(
-                        event.target.value
-                      )
-                    }
+                    onChange={(event) => setObservaciones(event.target.value)}
                     placeholder="Ej. Sin cebolla"
                   />
                 </div>
@@ -289,14 +297,9 @@ export default function PedidoDetalle() {
               <button
                 type="submit"
                 className="primary-button"
-                disabled={
-                  !productoSeleccionado ||
-                  guardando
-                }
+                disabled={!productoSeleccionado || guardando}
               >
-                {guardando
-                  ? "Agregando..."
-                  : "+ Agregar al pedido"}
+                {guardando ? "Agregando..." : "+ Agregar al pedido"}
               </button>
             </form>
           </section>
@@ -304,19 +307,12 @@ export default function PedidoDetalle() {
           <aside className="pedido-resumen">
             <div className="resumen-header">
               <div>
-                <span className="detail-label">
-                  PEDIDO
-                </span>
-
+                <span className="detail-label">Pedido</span>
                 <h2>#{pedido.id}</h2>
               </div>
 
-              <span
-                className={`pedido-status ${pedido.estado.toLowerCase()}`}
-              >
-                {pedido.estado === "PENDIENTE"
-                  ? "Pendiente"
-                  : "En proceso"}
+              <span className={`pedido-status ${pedido.estado.toLowerCase()}`}>
+                {pedido.estado === "PENDIENTE" ? "Pendiente" : "En proceso"}
               </span>
             </div>
 
@@ -328,10 +324,7 @@ export default function PedidoDetalle() {
 
               <div>
                 <span>Mesero</span>
-                <strong>
-                  {pedido.mesero?.nombre ||
-                    "Sin asignar"}
-                </strong>
+                <strong>{pedido.mesero?.nombre || "Sin asignar"}</strong>
               </div>
             </div>
 
@@ -341,48 +334,31 @@ export default function PedidoDetalle() {
               {contenidos.length === 0 ? (
                 <div className="resumen-empty">
                   <span>▤</span>
-                  <p>
-                    Todavía no hay productos
-                    en este pedido.
-                  </p>
+                  <p>Todavía no hay productos en este pedido.</p>
                 </div>
               ) : (
                 contenidos.map((contenido) => (
-                  <div
-                    className="resumen-item"
-                    key={contenido.id}
-                  >
+                  <div className="resumen-item" key={contenido.id}>
                     <div className="resumen-item-main">
-                      <strong>
-                        {contenido.cantidad}x
-                      </strong>
-
+                      <strong>{contenido.cantidad}x</strong>
                       <div>
-                        <span>
-                          {contenido.producto?.nombre}
-                        </span>
-
+                        <span>{contenido.producto?.nombre}</span>
                         {contenido.observaciones && (
-                          <small>
-                            {contenido.observaciones}
-                          </small>
+                          <small>{contenido.observaciones}</small>
                         )}
                       </div>
                     </div>
 
                     <div className="resumen-item-right">
-                      <strong>
-                        {formatearPrecio(
-                          contenido.precio
-                        )}
-                      </strong>
+                      <strong>{formatearPrecio(contenido.precio)}</strong>
+
+                      {/* NUEVO: botón de editar */}
+                      <button onClick={() => abrirEdicion(contenido)}>
+                        ✎
+                      </button>
 
                       <button
-                        onClick={() =>
-                          handleEliminarContenido(
-                            contenido.id
-                          )
-                        }
+                        onClick={() => handleEliminarContenido(contenido.id)}
                       >
                         ×
                       </button>
@@ -394,34 +370,28 @@ export default function PedidoDetalle() {
 
             <div className="resumen-total">
               <span>Total</span>
-
-              <strong>
-                {formatearPrecio(total)}
-              </strong>
+              <strong>{formatearPrecio(total)}</strong>
             </div>
 
             <div className="pedido-actions">
-              {pedido.estado === "PENDIENTE" && (
+              {(pedido.estado === "PENDIENTE" ||
+                pedido.estado === "EN_PROCESO") && (
                 <button
                   className="action-button"
                   onClick={enviarACocina}
-                  disabled={
-                    contenidos.length === 0 ||
-                    guardando
-                  }
+                  disabled={!hayNovedadesSinEnviar || guardando}
                 >
                   <span>🔥</span>
-                  Enviar a cocina
+                  {pedido.estado === "PENDIENTE"
+                    ? "Enviar a cocina"
+                    : "Enviar novedades"}
                 </button>
               )}
 
               <button
                 className="action-button action-success"
                 onClick={handleFacturar}
-                disabled={
-                  contenidos.length === 0 ||
-                  guardando
-                }
+                disabled={contenidos.length === 0 || guardando}
               >
                 <span>✓</span>
                 Facturar pedido
@@ -438,6 +408,78 @@ export default function PedidoDetalle() {
             </div>
           </aside>
         </div>
+
+        {ticketVisible && (
+          <div className="modal-overlay">
+            <div className="modal">
+              <button
+                className="modal-close"
+                onClick={() => setTicketVisible(false)}
+              >
+                ×
+              </button>
+              <h2>Ticket de cocina</h2>
+              <pre
+                style={{
+                  whiteSpace: "pre-wrap",
+                  fontSize: "13px",
+                  color: "#ccc",
+                }}
+              >
+                {textoTicket}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* NUEVO: modal de edición de producto */}
+        {contenidoEditando && (
+          <div className="modal-overlay">
+            <div className="modal">
+              <button className="modal-close" onClick={cerrarEdicion}>
+                ×
+              </button>
+
+              <h2>Editar {contenidoEditando.producto?.nombre}</h2>
+
+              <form className="producto-form" onSubmit={guardarEdicion}>
+                <div className="producto-form-row">
+                  <div className="form-field cantidad-field">
+                    <label>Cantidad</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={cantidadEditada}
+                      onChange={(event) =>
+                        setCantidadEditada(event.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="form-field observaciones-field">
+                    <label>Observaciones</label>
+                    <input
+                      type="text"
+                      value={observacionesEditadas}
+                      onChange={(event) =>
+                        setObservacionesEditadas(event.target.value)
+                      }
+                      placeholder="Ej. Sin cebolla"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="primary-button"
+                  disabled={guardando}
+                >
+                  {guardando ? "Guardando..." : "Guardar cambios"}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
     </>
   );

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../services/api";
+import LogoMark from "../components/LogoMark.jsx";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -17,9 +18,9 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(usuario, password);
+      const data = await login(usuario, password);
 
-      localStorage.setItem("authenticated", "true");
+      localStorage.setItem("token", data.token);
 
       navigate("/dashboard");
     } catch (error) {
@@ -34,11 +35,11 @@ export default function Login() {
       <div className="login-card">
 
         <div className="login-logo">
-          R
+          <LogoMark size={42} />
         </div>
 
-        <h1>Bienvenido</h1>
-        <p>Ingresa al sistema del restaurante</p>
+        <h1>Bienvenido a La Brasa</h1>
+        <p>Ingresa al sistema de Parrilla &amp; Asador</p>
 
         <form onSubmit={handleSubmit}>
 

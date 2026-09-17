@@ -10,9 +10,3 @@ export function validarIdPositivo(nombreParametro) {
     next();
   };
 }
-
-export async function checkContenido(valor) {
-  if (typeof valor !== "string" || valor.trim().length === 0) {
-    return res.status(400).json({ msg: "Formato de valor invalido!" });
-  }
-}

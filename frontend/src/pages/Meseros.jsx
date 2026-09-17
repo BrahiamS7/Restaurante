@@ -5,6 +5,7 @@ import {
   crearMesero,
   actualizarMesero,
   desactivarMesero,
+  reactivarMesero,
 } from "../services/api";
 
 export default function Meseros() {
@@ -15,18 +16,18 @@ export default function Meseros() {
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+  const [pestañaActiva, setPestañaActiva] = useState("activos");
 
   useEffect(() => {
     cargarMeseros();
-  }, []);
+  }, [pestañaActiva]);
 
   async function cargarMeseros() {
     try {
       setLoading(true);
       setError("");
 
-      const data = await obtenerMeseros();
-
+      const data = await obtenerMeseros(pestañaActiva === "activos");
       setMeseros(data);
     } catch (error) {
       setMeseros([]);
@@ -81,7 +82,7 @@ export default function Meseros() {
 
   async function handleDesactivar(mesero) {
     const confirmar = window.confirm(
-      `¿Seguro que deseas desactivar a "${mesero.nombre}"?`
+      `¿Seguro que deseas desactivar a "${mesero.nombre}"?`,
     );
 
     if (!confirmar) return;
@@ -90,6 +91,19 @@ export default function Meseros() {
       setError("");
 
       await desactivarMesero(mesero.id);
+      await cargarMeseros();
+    } catch (error) {
+      setError(error.message);
+    }
+  }
+
+  async function handleReactivar(mesero) {
+    const confirmar = window.confirm(`¿Reactivar a "${mesero.nombre}"?`);
+    if (!confirmar) return;
+
+    try {
+      setError("");
+      await reactivarMesero(mesero.id);
       await cargarMeseros();
     } catch (error) {
       setError(error.message);
@@ -108,10 +122,31 @@ export default function Meseros() {
       />
 
       <main className="page-content">
+        <div className="dashboard-tabs">
+          <button
+            className={pestañaActiva === "activos" ? "active" : ""}
+            onClick={() => setPestañaActiva("activos")}
+          >
+            Activos
+          </button>
+          <button
+            className={pestañaActiva === "inactivos" ? "active" : ""}
+            onClick={() => setPestañaActiva("inactivos")}
+          >
+            Inactivos
+          </button>
+        </div>
         <div className="page-toolbar">
           <div>
-            <h2>Personal activo</h2>
-            <p>{meseros.length} meseros activos</p>
+            {pestañaActiva === "activos" ? (
+              <h2>Personal activo</h2>
+            ) : (
+              <h2>Personal inactivo</h2>
+            )}
+            <p>
+              {meseros.length} meseros{" "}
+              {pestañaActiva === "activos" ? "activos" : "inactivos"}
+            </p>
           </div>
 
           <div className="toolbar-actions">
@@ -125,14 +160,12 @@ export default function Meseros() {
           </div>
         </div>
 
-        {error && !modal && (
-          <div className="error-message">{error}</div>
-        )}
+        {error && !modal && <div className="error-message">{error}</div>}
 
         {meseros.length === 0 ? (
           <div className="empty-state">
             <div>●</div>
-            <h2>No hay meseros activos</h2>
+            <h2>No hay meseros {pestañaActiva === "activos" ? "activos" : "inactivos"}</h2>
             <p>Agrega el primer mesero del restaurante.</p>
           </div>
         ) : (
@@ -144,11 +177,15 @@ export default function Meseros() {
                 </div>
 
                 <div className="mesero-info">
-                  <span>CÓDIGO #{mesero.id}</span>
+                  <span>Código #{mesero.id}</span>
                   <h3>{mesero.nombre}</h3>
-                  <small>
+                  <small
+                    className={
+                      mesero.activo ? "estado-activo" : "estado-inactivo"
+                    }
+                  >
                     <i></i>
-                    Activo
+                    {mesero.activo ? "Activo" : "Inactivo"}
                   </small>
                 </div>
 
@@ -160,12 +197,21 @@ export default function Meseros() {
                     Editar
                   </button>
 
-                  <button
-                    className="delete-button"
-                    onClick={() => handleDesactivar(mesero)}
-                  >
-                    Desactivar
-                  </button>
+                  {pestañaActiva === "activos" ? (
+                    <button
+                      className="delete-button"
+                      onClick={() => handleDesactivar(mesero)}
+                    >
+                      Desactivar
+                    </button>
+                  ) : (
+                    <button
+                      className="edit-button"
+                      onClick={() => handleReactivar(mesero)}
+                    >
+                      Reactivar
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -182,9 +228,7 @@ export default function Meseros() {
 
             <div className="modal-icon">●</div>
 
-            <h2>
-              {modal === "crear" ? "Nuevo mesero" : "Editar mesero"}
-            </h2>
+            <h2>{modal === "crear" ? "Nuevo mesero" : "Editar mesero"}</h2>
 
             <p>
               {modal === "crear"
@@ -203,9 +247,7 @@ export default function Meseros() {
                 required
               />
 
-              {error && (
-                <div className="error-message">{error}</div>
-              )}
+              {error && <div className="error-message">{error}</div>}
 
               <button
                 type="submit"
@@ -215,8 +257,8 @@ export default function Meseros() {
                 {guardando
                   ? "Guardando..."
                   : modal === "crear"
-                  ? "Crear mesero"
-                  : "Guardar cambios"}
+                    ? "Crear mesero"
+                    : "Guardar cambios"}
               </button>
             </form>
           </div>

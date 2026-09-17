@@ -2,7 +2,7 @@ import prisma from "../utils/prisma.js";
 
 export async function crearContenido(req, res) {
   try {
-    const { cantidad, producto_id, pedido_id } = req.body;
+    const { cantidad, producto_id, pedido_id, observaciones } = req.body;
 
     if (
       typeof cantidad !== "number" ||
@@ -42,7 +42,7 @@ export async function crearContenido(req, res) {
     if (!pedido) {
       return res.status(400).json({ msg: "Pedido inexistente!" });
     }
-     if (pedido.estado === "CANCELADO" || pedido.estado === "FACTURADO") {
+    if (pedido.estado === "CANCELADO" || pedido.estado === "FACTURADO") {
       return res.status(400).json({
         msg: "No se puede generar ticket de un pedido cancelado o facturado",
       });
@@ -55,6 +55,7 @@ export async function crearContenido(req, res) {
         precio,
         producto_id: Number(producto_id),
         pedido_id: Number(pedido_id),
+        observaciones,
       },
     });
     res.status(201).json({ msg: "contenido creado correctamente", contenido });
@@ -111,6 +112,7 @@ export async function actualizarContenido(req, res) {
         cantidad,
         observaciones,
         precio: nuevoPrecio,
+        enviadoACocina:false
       },
     });
 

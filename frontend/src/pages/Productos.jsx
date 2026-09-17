@@ -8,6 +8,14 @@ import {
   desactivarProducto,
 } from "../services/api";
 
+const CATEGORIAS = [
+  { value: "PLATO_FUERTE", label: "Plato fuerte" },
+  { value: "ENTRADA", label: "Entrada" },
+  { value: "BEBIDA", label: "Bebida" },
+  { value: "POSTRE", label: "Postre" },
+  { value: "OTRO", label: "Otro" },
+];
+
 export default function Productos() {
   const [productos, setProductos] = useState([]);
 
@@ -15,6 +23,7 @@ export default function Productos() {
 
   const [nombre, setNombre] = useState("");
   const [precio, setPrecio] = useState("");
+  const [categoria, setCategoria] = useState("PLATO_FUERTE");
 
   const [productoSeleccionado, setProductoSeleccionado] =
     useState(null);
@@ -51,9 +60,17 @@ export default function Productos() {
     }).format(Number(precio));
   }
 
+  function formatearCategoria(categoria) {
+    return (
+      CATEGORIAS.find((opcion) => opcion.value === categoria)?.label ||
+      categoria
+    );
+  }
+
   function abrirCrear() {
     setNombre("");
     setPrecio("");
+    setCategoria("PLATO_FUERTE");
     setProductoSeleccionado(null);
     setError("");
     setModal("crear");
@@ -62,6 +79,7 @@ export default function Productos() {
   function abrirEditar(producto) {
     setNombre(producto.nombre);
     setPrecio(Number(producto.precio));
+    setCategoria(producto.categoria || "PLATO_FUERTE");
     setProductoSeleccionado(producto);
     setError("");
     setModal("editar");
@@ -71,6 +89,7 @@ export default function Productos() {
     setModal(null);
     setNombre("");
     setPrecio("");
+    setCategoria("PLATO_FUERTE");
     setProductoSeleccionado(null);
     setError("");
   }
@@ -83,12 +102,13 @@ export default function Productos() {
       setError("");
 
       if (modal === "crear") {
-        await crearProducto(nombre, precio);
+        await crearProducto(nombre, precio, categoria);
       } else {
         await actualizarProducto(
           productoSeleccionado.id,
           nombre,
-          precio
+          precio,
+          categoria
         );
       }
 
@@ -192,6 +212,9 @@ export default function Productos() {
                 </div>
 
                 <h3>{producto.nombre}</h3>
+                <span className="producto-categoria">
+                  {formatearCategoria(producto.categoria)}
+                </span>
 
                 <strong className="producto-price">
                   {formatearPrecio(producto.precio)}
@@ -278,6 +301,7 @@ export default function Productos() {
               <input
                 type="number"
                 min="1"
+                step="0.01"
                 value={precio}
                 onChange={(event) =>
                   setPrecio(event.target.value)
@@ -285,6 +309,24 @@ export default function Productos() {
                 placeholder="Ej. 25000"
                 required
               />
+
+              <label>
+                Categoría
+              </label>
+
+              <select
+                value={categoria}
+                onChange={(event) =>
+                  setCategoria(event.target.value)
+                }
+                required
+              >
+                {CATEGORIAS.map((opcion) => (
+                  <option key={opcion.value} value={opcion.value}>
+                    {opcion.label}
+                  </option>
+                ))}
+              </select>
 
               {error && (
                 <div className="error-message">

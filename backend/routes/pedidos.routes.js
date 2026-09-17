@@ -19,6 +19,6 @@ router.put("/:id/estado", actualizarEstadoPedido);
 router.post("/:id/facturar", facturarPedido);
 router.get("/:id/contenidos", obtenerContenidosPorPedido);
 router.post("/:id/cancelar", cancelarPedido);
-router.get("/:id/ticket", generarTicket);
+router.post("/:id/ticket", generarTicket);
 
 export default router;

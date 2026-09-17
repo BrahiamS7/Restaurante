@@ -1,6 +1,13 @@
-import { NavLink } from "react-router-dom";
-
+import { NavLink, useNavigate } from "react-router-dom";
+import LogoMark from "../components/LogoMark.jsx";
 export default function Sidebar() {
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    localStorage.removeItem("token");
+    navigate("/login");
+  }
+
   const menuItems = [
     { path: "/dashboard", icon: "▣", label: "Dashboard" },
     { path: "/mesas", icon: "▦", label: "Mesas" },
@@ -13,16 +20,15 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-icon">R</div>
-
+        <LogoMark size={42} />
         <div>
-          <h2>RESTAURANTE</h2>
-          <span>POS SYSTEM</span>
+          <h2>La Brasa</h2>
+          <span>Parrilla &amp; asador</span>
         </div>
       </div>
 
       <nav className="sidebar-nav">
-        <p className="menu-title">MENÚ PRINCIPAL</p>
+        <p className="menu-title">Secciones</p>
 
         {menuItems.map((item) => (
           <NavLink
@@ -39,7 +45,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-bottom">
-        <button className="logout-button">
+        <button className="logout-button" onClick={handleLogout}>
           <span>↪</span>
           Cerrar sesión
         </button>

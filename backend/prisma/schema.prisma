@@ -29,6 +29,14 @@ enum estadoT{
     CERRADO
 }
 
+enum categoria{
+    PLATO_FUERTE
+    ENTRADA
+    BEBIDA
+    POSTRE
+    OTRO
+}
+
 
 model Administrador{
     id        Int @id @default(autoincrement())
@@ -49,14 +57,16 @@ model Producto {
     nombre      String
     precio      Decimal @db.Decimal(10, 2)
     activo  Boolean @default(true)
+    categoria   categoria @default(OTRO)
     contenidos Contenido[]
 }
 
 model Contenido{
     id          Int @id @default(autoincrement())
     cantidad    Int
-    observaciones String?
+    observaciones String? 
     precio      Decimal @db.Decimal(10, 2)
+    enviadoACocina Boolean @default(false)
     
     producto    Producto @relation(fields:[producto_id],references: [id])
     producto_id  Int
@@ -67,7 +77,8 @@ model Contenido{
 
 model Mesa {
     id          Int @id @default(autoincrement())
-    estadoM     estadoM  @default(LIBRE) 
+    estadoM     estadoM  @default(LIBRE)
+    activo  Boolean @default(true)
 
     mesero      Mesero? @relation(fields:[mesero_id], references: [id])
     mesero_id   Int?

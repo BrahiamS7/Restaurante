@@ -1,6 +1,9 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import Sidebar from "./components/Sidebar";
+import ThemeToggle from "./components/ThemeToggle";
+
+import { ThemeProvider } from "./context/ThemeContext";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -12,7 +15,7 @@ import Meseros from "./pages/Meseros";
 import Turnos from "./pages/Turnos";
 
 function ProtectedLayout() {
-  const authenticated = localStorage.getItem("authenticated") === "true";
+  const authenticated = Boolean(localStorage.getItem("token"));
 
   if (!authenticated) {
     return <Navigate to="/login" replace />;
@@ -23,6 +26,8 @@ function ProtectedLayout() {
       <Sidebar />
 
       <div className="main-content">
+        <ThemeToggle />
+
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
 
@@ -32,13 +37,16 @@ function ProtectedLayout() {
 
           <Route path="/pedidos/:id" element={<PedidoDetalle />} />
 
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-
           <Route path="/productos" element={<Productos />} />
 
           <Route path="/meseros" element={<Meseros />} />
 
           <Route path="/turnos" element={<Turnos />} />
+
+          <Route
+            path="*"
+            element={<Navigate to="/dashboard" replace />}
+          />
         </Routes>
       </div>
     </div>
@@ -47,12 +55,14 @@ function ProtectedLayout() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
 
-        <Route path="/*" element={<ProtectedLayout />} />
-      </Routes>
-    </BrowserRouter>
+          <Route path="/*" element={<ProtectedLayout />} />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }

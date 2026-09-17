@@ -1,9 +1,12 @@
 const API_URL = "http://localhost:3000";
 
 export async function apiRequest(endpoint, options = {}) {
+  const token = localStorage.getItem("token");
+
   const response = await fetch(`${API_URL}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },
     ...options,
@@ -12,6 +15,9 @@ export async function apiRequest(endpoint, options = {}) {
   const data = await response.json();
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem("token");
+    }
     throw new Error(data.msg || data.error || "Ocurrió un error");
   }
 
@@ -32,8 +38,8 @@ export async function obtenerMesas() {
   return apiRequest("/mesas");
 }
 
-export async function obtenerMeseros() {
-  return apiRequest("/admin/meseros");
+export async function obtenerMeseros(activo = true) {
+  return apiRequest(`/admin/meseros?activo=${activo}`);
 }
 
 export async function crearPedido(mesero_id, mesa_id) {
@@ -86,22 +92,24 @@ export async function obtenerProductoPorId(id) {
   return apiRequest(`/productos/${id}`);
 }
 
-export async function crearProducto(nombre, precio) {
+export async function crearProducto(nombre, precio, categoria) {
   return apiRequest("/productos", {
     method: "POST",
     body: JSON.stringify({
       nombre,
       precio: Number(precio),
+      categoria,
     }),
   });
 }
 
-export async function actualizarProducto(id, nombre, precio) {
+export async function actualizarProducto(id, nombre, precio, categoria) {
   return apiRequest(`/productos/${id}/actualizar`, {
     method: "PUT",
     body: JSON.stringify({
       nombre,
       precio: Number(precio),
+      categoria,
     }),
   });
 }
@@ -131,8 +139,13 @@ export async function actualizarMesero(id, nombre) {
 }
 
 export async function desactivarMesero(id) {
-  return apiRequest(`/admin/mesero/${id}`, {
-    method: "DELETE",
+  return apiRequest(`/admin/mesero/${id}/desactivar`, {
+    method: "PUT",
+  });
+}
+export async function reactivarMesero(id) {
+  return apiRequest(`/admin/mesero/${id}/reactivar`, {
+    method: "PUT",
   });
 }
 
@@ -142,10 +155,14 @@ export async function crearTurno() {
   });
 }
 
-export async function obtenerTurnos() {
-  return apiRequest("/turnos");
-}
+export async function obtenerTurnos(desde, hasta) {
+  const params = new URLSearchParams();
+  if (desde) params.append("desde", desde);
+  if (hasta) params.append("hasta", hasta);
 
+  const query = params.toString();
+  return apiRequest(`/turnos${query ? `?${query}` : ""}`);
+}
 
 export async function cerrarTurno(id) {
   return apiRequest(`/turnos/${id}/cerrar`, {
@@ -156,8 +173,6 @@ export async function cerrarTurno(id) {
 export async function obtenerTurnoPorId(id) {
   return apiRequest(`/turnos/${id}`);
 }
-
-
 
 export async function actualizarContenido(id, cantidad, observaciones) {
   return apiRequest(`/contenidos/${id}`, {
@@ -182,7 +197,8 @@ export async function obtenerContenidosPorPedido(id) {
 export async function crearContenido(
   cantidad,
   producto_id,
-  pedido_id
+  pedido_id,
+  observaciones,
 ) {
   return apiRequest("/contenidos", {
     method: "POST",
@@ -190,6 +206,34 @@ export async function crearContenido(
       cantidad: Number(cantidad),
       producto_id: Number(producto_id),
       pedido_id: Number(pedido_id),
+      observaciones,
     }),
   });
+}
+
+export async function crearMesa() {
+  return apiRequest("/mesas", {
+    method: "POST",
+  });
+}
+
+export async function generarTicket(id) {
+  return apiRequest(`/pedidos/${id}/ticket`, {
+    method: "POST",
+  });
+}
+
+export async function desactivarMesa(id) {
+  return apiRequest(`/mesas/${id}/desactivar`, {
+    method: "PUT",
+  });
+}
+
+export async function reactivarMesa(id) {
+  return apiRequest(`/mesas/${id}/reactivar`, {
+    method: "PUT",
+  });
+}
+export async function obtenerTodasLasMesas() {
+  return apiRequest("/mesas?activo=todos");
 }

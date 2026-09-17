@@ -1,7 +1,7 @@
 import prisma from "../utils/prisma.js";
 import { Prisma } from "../generated/prisma/index.js";
 
-import fs from "fs";
+const ESTADOS_VALIDOS = ["PENDIENTE", "EN_PROCESO", "CANCELADO", "FACTURADO"];
 
 export async function crearPedido(req, res) {
   try {
@@ -19,6 +19,19 @@ export async function crearPedido(req, res) {
       mesa_id <= 0
     ) {
       return res.status(400).json({ msg: "Codigo de mesa invalida!" });
+    }
+
+    const mesero = await prisma.mesero.findUnique({ where: { id: mesero_id } });
+    if (!mesero || !mesero.activo) {
+      return res.status(400).json({ msg: "Mesero inexistente o inactivo!" });
+    }
+
+    const mesa = await prisma.mesa.findUnique({ where: { id: mesa_id } });
+    if (!mesa || !mesa.activo) {
+      return res.status(400).json({ msg: "Mesa inexistente o inactiva!" });
+    }
+    if (mesa.estadoM !== "LIBRE") {
+      return res.status(400).json({ msg: "La mesa no está libre!" });
     }
 
     const turnoActivo = await prisma.turno.findFirst({
@@ -58,12 +71,24 @@ export async function crearPedido(req, res) {
 
 export async function obtenerPedidos(req, res) {
   try {
+    const { estado, turno_id } = req.query;
+
+    const filtro = {};
+
+    if (estado === "todos") {
+      // sin filtro de estado
+    } else if (estado && ESTADOS_VALIDOS.includes(estado)) {
+      filtro.estado = estado;
+    } else {
+      filtro.estado = { in: ["PENDIENTE", "EN_PROCESO"] };
+    }
+
+    if (turno_id) {
+      filtro.turno_id = Number(turno_id);
+    }
+
     const pedidos = await prisma.pedido.findMany({
-      where: {
-        estado: {
-          in: ["PENDIENTE", "EN_PROCESO"],
-        },
-      },
+      where: filtro,
       include: {
         mesero: {
           select: {
@@ -168,6 +193,9 @@ export async function actualizarEstadoPedido(req, res) {
       pedido_id <= 0
     ) {
       return res.status(400).json({ msg: "Codigo de pedido invalido!" });
+    }
+    if (!ESTADOS_VALIDOS.includes(estado)) {
+      return res.status(400).json({ msg: "Estado invalido!" });
     }
     const pedidoActualizado = await prisma.pedido.update({
       where: {
@@ -337,6 +365,9 @@ export async function generarTicket(req, res) {
       },
       include: {
         contenidos: {
+          where: {
+            enviadoACocina: false,
+          },
           select: {
             cantidad: true,
             precio: true,
@@ -357,6 +388,12 @@ export async function generarTicket(req, res) {
         msg: "No se puede generar ticket de un pedido cancelado o facturado",
       });
     }
+    if (pedido.contenidos.length === 0) {
+      return res
+        .status(400)
+        .json({ msg: "No hay productos nuevos para enviar a cocina" });
+    }
+
     await prisma.pedido.update({
       where: {
         id: pedido_id,
@@ -383,7 +420,11 @@ export async function generarTicket(req, res) {
         })
         .join("");
 
-    fs.writeFileSync(`ticket_${pedido_id}.txt`, ticket);
+
+    await prisma.contenido.updateMany({
+      where: { pedido_id: pedido_id, enviadoACocina: false },
+      data: { enviadoACocina: true },
+    });
 
     return res
       .status(200)
