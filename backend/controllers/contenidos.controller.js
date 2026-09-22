@@ -1,4 +1,5 @@
 import prisma from "../utils/prisma.js";
+import { manejarError } from "../utils/manejarError.js";
 
 export async function crearContenido(req, res) {
   try {
@@ -60,7 +61,7 @@ export async function crearContenido(req, res) {
     });
     res.status(201).json({ msg: "contenido creado correctamente", contenido });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -120,7 +121,7 @@ export async function actualizarContenido(req, res) {
       .status(200)
       .json({ msg: "Contenido actualizado correctamente", contenidoAct });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -156,6 +157,6 @@ export async function eliminarContenido(req, res) {
     });
     return res.status(200).json({ msg: "Contenido eliminado correctamente" });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }

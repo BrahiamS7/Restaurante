@@ -1,6 +1,7 @@
 import prisma from "../utils/prisma.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { manejarError } from "../utils/manejarError.js";
 
 // export function validarPass(password) {
 //   if (password.length >= 8 && /\d/.test(password)) {
@@ -40,7 +41,7 @@ export async function login(req, res) {
     );
     res.status(200).json({ msg: "Usuario aprobado!", token });
   } catch (error) {
-    res.status(500).json({ msg: error.message, error });
+    manejarError(error, res);
   }
 }
 
@@ -61,7 +62,7 @@ export async function crearMesero(req, res) {
     }
     return res.status(400).json({ msg: "Formato del nombre invalido!" });
   } catch (error) {
-    res.status(500).json({ msg: error.message, error });
+    manejarError(error, res);
   }
 }
 
@@ -77,7 +78,7 @@ export async function obtenerMeseros(req, res) {
 
     return res.status(200).json(meseros);
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -104,7 +105,7 @@ export async function obtenerMeseroPorId(req, res) {
       .status(200)
       .json({ msg: "Mesero obtenido correctamente", mesero });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -134,7 +135,7 @@ export async function actualizarMesero(req, res) {
       .status(202)
       .json({ msg: "Mesero actualizado correctamente!", meseroActualizado });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -173,7 +174,7 @@ export async function desactivarMesero(req, res) {
       .status(200)
       .json({ msg: "Mesero desactivado correctamente!", meseroDesactivado });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -199,6 +200,6 @@ export async function reactivarMesero(req, res) {
       .status(200)
       .json({ msg: "Mesero reactivado correctamente!", meseroReactivado });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }

@@ -1,4 +1,5 @@
 import prisma from "../utils/prisma.js";
+import { manejarError } from "../utils/manejarError.js";
 
 export async function crearMesa(req, res) {
   try {
@@ -7,7 +8,7 @@ export async function crearMesa(req, res) {
     });
     return res.status(201).json({ msg: "Mesa creada exitosamente" });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -26,7 +27,7 @@ export async function obtenerMesas(req, res) {
 
     return res.status(200).json({ msg: "Mesas obtenidas exitosamente", mesas });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -55,7 +56,7 @@ export async function obtenerMesaPorId(req, res) {
     }
     return res.status(200).json({ msg: "Mesa obtenida exitosamente", mesa });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -92,7 +93,7 @@ export async function desactivarMesa(req, res) {
       .status(200)
       .json({ msg: "Mesa desactivada correctamente!", mesaDesactivada });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -118,6 +119,6 @@ export async function reactivarMesa(req, res) {
       .status(200)
       .json({ msg: "Mesa reactivada correctamente!", mesaReactivada });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }

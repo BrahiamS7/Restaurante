@@ -1,5 +1,6 @@
 import prisma from "../utils/prisma.js";
 import { Prisma } from "../generated/prisma/index.js";
+import { manejarError } from "../utils/manejarError.js";
 
 export async function crearTurno(req, res) {
   try {
@@ -17,7 +18,7 @@ export async function crearTurno(req, res) {
     });
     return res.status(201).json({ msg: "Turno creado correctamente" });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -64,7 +65,7 @@ export async function obtenerTurnos(req, res) {
       .status(200)
       .json({ msg: "Turnos obtenidos correctamente", turnos: turnosConTotal });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -108,10 +109,7 @@ export async function obtenerTurnoPorId(req, res) {
       turno,
     });
   } catch (error) {
-    return res.status(500).json({
-      msg: error.message,
-      error,
-    });
+    return manejarError(error, res);
   }
 }
 
@@ -145,7 +143,7 @@ export async function turnoActual(req, res) {
       },
     });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -192,6 +190,6 @@ export async function cerrarTurno(req, res) {
 
     return res.status(200).json({ msg: "Turno cerrado correctamente", turno });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }

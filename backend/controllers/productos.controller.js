@@ -1,4 +1,5 @@
 import prisma from "../utils/prisma.js";
+import { manejarError } from "../utils/manejarError.js";
 
 const CATEGORIAS_VALIDAS = ["PLATO_FUERTE", "ENTRADA", "BEBIDA", "POSTRE", "OTRO"];
 
@@ -31,7 +32,7 @@ export async function crearProducto(req, res) {
     });
     return res.status(201).json(producto);
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -49,7 +50,7 @@ export async function obtenerProductos(req, res) {
       .status(200)
       .json({ msg: "Productos cargados correctamente", productos });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -75,7 +76,7 @@ export async function obtenerProductosPorId(req, res) {
       .status(200)
       .json({ msg: "Producto cargado correctamente", producto });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -95,7 +96,7 @@ export async function obtenerProductosPorCategoria(req, res) {
       .status(200)
       .json({ msg: "Productos cargados correctamente", productos });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -121,7 +122,7 @@ export async function desactivarProducto(req, res) {
       .status(200)
       .json({ msg: "Producto actualizado correctamente", productoActualizado });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -163,6 +164,6 @@ export async function actualizarProducto(req, res) {
       .status(200)
       .json({ msg: "Producto actualizado correctamente", productoActualizado });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }

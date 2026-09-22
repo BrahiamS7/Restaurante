@@ -8,22 +8,35 @@ import pedidosRoutes from "./routes/pedidos.routes.js";
 import productosRoutes from "./routes/productos.routes.js";
 import turnosRoutes from "./routes/turnos.routes.js";
 import { verificarToken } from "./middleware/auth.middleware.js";
+import { limitadorGeneral, limitadorLogin } from "./middleware/rateLimit.middleware.js";
 import { login } from "./controllers/admin.controller.js";
 
 const app = express();
+
+const origenesPermitidos = (process.env.CORS_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((origen) => origen.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: "*",
+    origin(origen, callback) {
+      if (!origen || origenesPermitidos.includes(origen)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Origen no permitido por CORS"));
+    },
   }),
 );
 
 app.use(express.json());
+app.use(limitadorGeneral);
 
 app.get("/", (req, res) => {
   res.status(200).json({ msg: "API FUNCIONANDO!" });
 });
 
-app.post("/admin/login", login);
+app.post("/admin/login", limitadorLogin, login);
 
 app.use(verificarToken);
 

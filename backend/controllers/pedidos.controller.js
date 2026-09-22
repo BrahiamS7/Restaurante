@@ -1,5 +1,6 @@
 import prisma from "../utils/prisma.js";
 import { Prisma } from "../generated/prisma/index.js";
+import { manejarError } from "../utils/manejarError.js";
 
 const ESTADOS_VALIDOS = ["PENDIENTE", "EN_PROCESO", "CANCELADO", "FACTURADO"];
 
@@ -65,7 +66,7 @@ export async function crearPedido(req, res) {
     ]);
     return res.status(201).json({ msg: "pedido creado correctamente", pedido });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -127,7 +128,7 @@ export async function obtenerPedidos(req, res) {
       .status(200)
       .json({ msg: "Pedidos obtenidos correctamente!", pedidosConTotal });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -179,7 +180,7 @@ export async function obtenerPedidoPorId(req, res) {
       totalCalculado: totalCalculado.toNumber(),
     });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -209,7 +210,7 @@ export async function actualizarEstadoPedido(req, res) {
       .status(200)
       .json({ msg: "Pedido actualizado correctamente!", pedidoActualizado });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -269,7 +270,7 @@ export async function facturarPedido(req, res) {
       .status(200)
       .json({ msg: "Pedido facturado correctamente", pedidoFacturado });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -297,7 +298,7 @@ export async function obtenerContenidosPorPedido(req, res) {
       .status(200)
       .json({ msg: "Lista de contenidos exitosa!", listaContenidos });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -345,7 +346,7 @@ export async function cancelarPedido(req, res) {
       .status(200)
       .json({ msg: "Pedido cancelado correctamente", pedido });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
 
@@ -430,6 +431,6 @@ export async function generarTicket(req, res) {
       .status(200)
       .json({ msg: "Ticket generado correctamente", ticket });
   } catch (error) {
-    return res.status(500).json({ msg: error.message, error });
+    return manejarError(error, res);
   }
 }
